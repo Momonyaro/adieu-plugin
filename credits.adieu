@@ -1,0 +1,27 @@
+[Logo]
+!display-section-header=false
+!min-height=0
+!load-tscn="uid://bpr7iq02a6jk0"
+
+[Momonyaro]
+!min-height=0
+<Developer>
+Sebastian Alkstrand
+
+[Test Section]
+<Some Context Tag>
+Some text, can be however long you want but you really should stick to names...
+
+[Special Thanks]
+!text-align="center"
+My beloved friends & family
+
+[Spacer]
+!display-section-header=false
+!min-height=0
+
+[Footer]
+!display-section-header=false
+!text-stretch="shrink"
+$StartFadeout
+Thank you for testing.
