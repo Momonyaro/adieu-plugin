@@ -7,12 +7,18 @@
 !min-height=0
 <Developer>
 Sebastian Alkstrand
+Sebastian Alkstrand 2
+Sebastian Alkstrand 3
+<Super Dev>
+Sebastian Alkstrand 4
 
 [Test Section]
+Some text, no context
 <Some Context Tag>
-Some text, can be however long you want but you really should stick to names...
+Some text, that you can make pretty long...
 
 [Special Thanks]
+!display-section-context=false
 !text-align="center"
 My beloved friends & family
 
@@ -22,6 +28,8 @@ My beloved friends & family
 
 [Footer]
 !display-section-header=false
-!text-stretch="shrink"
+!display-section-context=false
+!text-align="center"
+!min-height=0
 $StartFadeout
 Thank you for testing.
