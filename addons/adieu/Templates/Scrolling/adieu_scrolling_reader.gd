@@ -1,10 +1,15 @@
 extends Control
 
+signal on_event(event_key: String);
+signal on_stop;
+
 var built: bool = false;
 var running: bool = false;
 var sped_up: bool = false;
 var current_offset: float = 0;
 var last_context: String = "";
+
+var sections: Array = [];
 
 @export var credits: AdieuResource;
 @export var autoplay: bool = true;
@@ -23,6 +28,7 @@ var last_context: String = "";
 @export var context_font: Font;
 @export var text_font: Font;
 @export var default_styling: Dictionary[String, String] = {};
+@export var swap_text_and_context: bool = false;
 @export var hide_repeat_contexts: bool = true;
 
 @export_subgroup("Components")
@@ -42,11 +48,17 @@ func _process(delta: float) -> void:
 
 	if running:
 		_scroll_step(delta);
+		for section in sections:
+			_evaluate_section_state(section);
 
 func build():
 	if credits == null:
 		push_error("[ADIEU] Failed to build credits, no resource was present.");
 		return;
+
+	for style_key in default_styling.keys():
+		match style_key:
+			AdieuStyling.KEYS.SECTION_GAP: AdieuStyling.apply_gap(default_styling[style_key], list_container);
 
 	for section in credits.data["Sections"]:
 		_build_section(section, list_container);
@@ -62,9 +74,14 @@ func run():
 		build();
 
 	running = true;
+	print("[ADIEU] >> Started.");
 
 func stop():
 	running = false;
+	on_stop.emit();
+	print("[ADIEU] >> Stopped.");
+
+# --- Update ---
 
 func _scroll_step(delta: float):
 	var base_offset = _get_base_offset();
@@ -78,6 +95,45 @@ func _scroll_step(delta: float):
 
 func _get_speed_mult() -> float:
 	return speed_up_multiplier if sped_up else 1.0;
+
+func _evaluate_section_state(section: Dictionary):
+	var section_instance: Control = section["Instance"];
+	var is_visible = get_viewport_rect().intersects(section_instance.get_global_rect());
+
+	if is_visible && section.get("Visible", false) == false:
+		section.set("Visible", true);
+		_on_section_enter(section);
+	elif !is_visible && section.get("Visible", false):
+		section.set("Visible", false);
+		_on_section_exit(section);
+
+		if _evaluate_finish_state():
+			stop();
+
+func _on_section_enter(section: Dictionary):
+	var styling = AdieuStyling.merge_styling(false, section["Styling"], default_styling);
+
+	if styling.has(AdieuStyling.KEYS.EVENT_ON):
+		if AdieuStyling.get_event_on_mode(styling[AdieuStyling.KEYS.EVENT_ON], AdieuStyling.EVENT_ON.Enter) == AdieuStyling.EVENT_ON.Enter:
+			_fire_section_events(section);
+
+func _on_section_exit(section: Dictionary):
+	var styling = AdieuStyling.merge_styling(false, section["Styling"], default_styling);
+
+	if styling.has(AdieuStyling.KEYS.EVENT_ON):
+		if AdieuStyling.get_event_on_mode(styling[AdieuStyling.KEYS.EVENT_ON], AdieuStyling.EVENT_ON.Enter) == AdieuStyling.EVENT_ON.Exit:
+			_fire_section_events(section);
+
+func _evaluate_finish_state() -> bool:
+	for section in sections:
+		if section.get("Visible", false):
+			return false;
+	return true;
+
+func _fire_section_events(section: Dictionary):
+	for event in section["Events"]:
+		on_event.emit(event);
+		print("[ADIEU] >> event emitted -> ", event);
 
 # --- Initialization ---
 
@@ -101,10 +157,8 @@ func _get_base_offset() -> float:
 # --- Prop Builders ---
 
 func _build_section(section: Dictionary, list_parent: VBoxContainer):
-	var dup_default_styling = default_styling.duplicate();
-	var section_style = section["Styling"].duplicate();
+	var section_style = AdieuStyling.merge_styling(false, section["Styling"], default_styling);
 
-	section_style.merge(dup_default_styling, false);
 	last_context = ""; # Clear last context for each section to prevent false positives
 
 	var section_container = VBoxContainer.new();
@@ -113,13 +167,19 @@ func _build_section(section: Dictionary, list_parent: VBoxContainer):
 	if AdieuStyling.should_display_header(section_style):
 		section_container.add_child(_build_section_header(section["Title"], section_style));
 
+	if AdieuStyling.has_content_to_inject(section_style):
+		section_container.add_child(AdieuStyling.load_packed_scene(section_style[AdieuStyling.KEYS.LOAD_TSCN]).instantiate());
+
 	for line in section["Lines"]:
 		section_container.add_child(_build_section_line(line, section_style));
 
 	for style_key in section_style.keys():
 		match style_key:
 			AdieuStyling.KEYS.MIN_HEIGHT: AdieuStyling.apply_min_height(section_style[style_key], section_container);
+			AdieuStyling.KEYS.GAP: AdieuStyling.apply_gap(section_style[style_key], section_container);
 
+	section["Instance"] = section_container;
+	sections.push_back(section);
 	list_parent.add_child(section_container);
 
 func _build_section_header(header: String, styling: Dictionary) -> Control:
@@ -137,6 +197,7 @@ func _build_section_header(header: String, styling: Dictionary) -> Control:
 			AdieuStyling.KEYS.HEADER_ALIGN: AdieuStyling.apply_text_align(styling[style_key], label);
 			AdieuStyling.KEYS.HEADER_SIZE: AdieuStyling.apply_text_size(styling[style_key], label);
 			AdieuStyling.KEYS.HEADER_COLOR: AdieuStyling.apply_text_color(styling[style_key], label);
+			AdieuStyling.KEYS.HEADER_CAPS: AdieuStyling.apply_text_caps(styling[style_key], label);
 
 	return label;
 
@@ -144,9 +205,14 @@ func _build_section_line(line: Dictionary, styling: Dictionary) -> Control:
 	var content_container = HBoxContainer.new();
 	content_container.alignment = BoxContainer.ALIGNMENT_CENTER;
 
-	content_container.add_child(_build_section_line_text(line, styling));
-	if AdieuStyling.should_display_context(styling):
-		content_container.add_child(_build_section_line_context(line, styling));
+	if swap_text_and_context:
+		if AdieuStyling.should_display_context(styling):
+			content_container.add_child(_build_section_line_context(line, styling));
+		content_container.add_child(_build_section_line_text(line, styling));
+	else:
+		content_container.add_child(_build_section_line_text(line, styling));
+		if AdieuStyling.should_display_context(styling):
+			content_container.add_child(_build_section_line_context(line, styling));
 
 	for style_key in styling.keys():
 		match style_key:
@@ -174,6 +240,7 @@ func _build_section_line_text(line: Dictionary, styling: Dictionary) -> Control:
 			AdieuStyling.KEYS.TEXT_ALIGN: AdieuStyling.apply_text_align(styling[style_key], label);
 			AdieuStyling.KEYS.TEXT_SIZE: AdieuStyling.apply_text_size(styling[style_key], label);
 			AdieuStyling.KEYS.TEXT_COLOR: AdieuStyling.apply_text_color(styling[style_key], label);
+			AdieuStyling.KEYS.TEXT_CAPS: AdieuStyling.apply_text_caps(styling[style_key], label);
 
 	return label;
 
@@ -202,5 +269,6 @@ func _build_section_line_context(line: Dictionary, styling: Dictionary) -> Contr
 			AdieuStyling.KEYS.CONTEXT_ALIGN: AdieuStyling.apply_text_align(styling[style_key], label);
 			AdieuStyling.KEYS.CONTEXT_SIZE: AdieuStyling.apply_text_size(styling[style_key], label);
 			AdieuStyling.KEYS.CONTEXT_COLOR: AdieuStyling.apply_text_color(styling[style_key], label);
+			AdieuStyling.KEYS.CONTEXT_CAPS: AdieuStyling.apply_text_caps(styling[style_key], label);
 
 	return label;

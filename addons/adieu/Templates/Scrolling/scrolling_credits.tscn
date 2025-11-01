@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://dmsmmib8t6oa6"]
 
 [ext_resource type="Script" uid="uid://di786igeipdrk" path="res://addons/adieu/Templates/Scrolling/adieu_scrolling_reader.gd" id="1_5jy3r"]
-[ext_resource type="Resource" uid="uid://dncyr7js53aak" path="res://credits.adieu" id="2_lm5v2"]
+[ext_resource type="Resource" uid="uid://dncyr7js53aak" path="res://addons/adieu/demo.adieu" id="2_lm5v2"]
 
 [sub_resource type="InputEventAction" id="InputEventAction_lm5v2"]
 action = &"ui_accept"
@@ -23,18 +23,33 @@ speed_up_multiplier = 5.0
 speed_up_action = SubResource("InputEventAction_lm5v2")
 include_top_y_in_start = true
 default_styling = Dictionary[String, String]({
-"context-align": "left",
+"context-align": "right",
+"context-caps": "true",
 "context-color": "#808080",
+"context-size": "12",
 "event-on": "enter",
-"gap": "16",
+"gap": "12",
 "header-align": "center",
-"header-size": "24",
-"min-height": "100",
-"text-align": "right"
+"header-caps": "true",
+"header-size": "12",
+"section-gap": "64",
+"text-align": "left",
+"text-caps": "false",
+"text-size": "12"
 })
+swap_text_and_context = true
 margin_container = NodePath("PanelContainer/MarginContainer")
 panel_container = NodePath("PanelContainer")
 list_container = NodePath("PanelContainer/MarginContainer/VBoxContainer")
+
+[node name="BG" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.015833402, 0.026099471, 0.004080486, 1)
 
 [node name="PanelContainer" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -52,12 +67,3 @@ layout_mode = 2
 [node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 32
-
-[node name="Control" type="Control" parent="PanelContainer"]
-layout_mode = 2
-
-[node name="ColorRect" type="ColorRect" parent="PanelContainer/Control"]
-custom_minimum_size = Vector2(0, 256)
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 256.0

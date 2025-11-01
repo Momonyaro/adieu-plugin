@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://byk52vw1ca8uh"]
+
+[ext_resource type="Texture2D" uid="uid://bpr7iq02a6jk0" path="res://icon.svg" id="1_5caws"]
+
+[node name="TestInject" type="TextureRect"]
+custom_minimum_size = Vector2(120, 120)
+texture = ExtResource("1_5caws")
+expand_mode = 1
+stretch_mode = 5

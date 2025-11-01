@@ -1,16 +1,10 @@
-[Logo]
-!display-section-header=false
-!min-height=0
-!load-tscn="uid://bpr7iq02a6jk0"
-
-[Momonyaro]
-!min-height=0
-<Developer>
+[Adieu Developers]
+<Adieu Creator>
 Sebastian Alkstrand
-Sebastian Alkstrand 2
-Sebastian Alkstrand 3
-<Super Dev>
-Sebastian Alkstrand 4
+<Contributor>
+Example Nameson
+Example Nameson
+Example Nameson
 
 [Test Section]
 Some text, no context
@@ -23,13 +17,12 @@ Some text, that you can make pretty long...
 My beloved friends & family
 
 [Spacer]
+!event-on="exit"
 !display-section-header=false
-!min-height=0
+$StartFadeout
 
 [Footer]
 !display-section-header=false
 !display-section-context=false
 !text-align="center"
-!min-height=0
-$StartFadeout
 Thank you for testing.
